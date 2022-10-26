@@ -1,0 +1,3 @@
+repo_path = /Library/mac_pkgs
+apps_path = /Library/mac_pkgs/apps
+log_file = /Library/mac_pkgs/logs/mac_pkgs.log
