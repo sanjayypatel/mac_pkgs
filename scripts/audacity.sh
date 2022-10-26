@@ -16,7 +16,7 @@ log_data() {
 
 # Log initial setup
 log_data "===== ===== ===== ====="
-log_data "mac_pkgs Main Script Start"
+log_data "mac_pkgs $name Script Start"
 log_data "Config File: $config_file"
 log_data "Log File: $log_file"
 log_data "===== ===== ===== ====="
@@ -53,7 +53,7 @@ log_data "App New Version: $app_new_version"
 required_pkg_name="audacity-macOS-$app_new_version-Intel.dmg"
 app_dir="$apps_path/$name"
 location="$app_dir/$required_pkg_name"
-mount_path="/Volumes/$name-macos-$app_new_version-Intel"
+mount_path="$repo_path/mount"
 app_name="Audacity.app"
 log_data "Required PKG Name: $required_pkg_name"
 
@@ -72,38 +72,46 @@ then
     exit 0
 fi
 
+# Verify app directory and download
 log_data "Verifying app directory: $app_dir"
 mkdir -p $app_dir
-
 log_data "Downloading $name $app_new_version"
-log_data "$download_url"
 curl -L -o $location $download_url
+download_check=$( ls -l $location )
+if [ -z $download_check ]
+then
+	log_data "Error! $location not found!"
+	exit 1
+fi
 
-ls -la $app_dir | grep $required_pkg_name | tee -a $log_file 
+# Mount dmg
+log_data "Mounting $location"
+hdiutil attach $location -mountpoint $mount_path | tee -a $log_file
 
-hdiutil attach $location
-
-log_data "Verifing Team ID"
+log_data "Verifing Team ID matches $expected_team_id"
 actual_team_id=$(spctl -a -vv $mount_path/$app_name 2>&1 | awk '/origin=/ {print $NF }' | tr -d '()')
+log_data "Downloaded Team ID: $actual_team_id"
 if [[ $actual_team_id = $expected_team_id ]] ; then
+	# Create package if downloaded Team ID and Expected Team ID match
     log_data "TeamID matches $expected_team_id"
     log_data "Creating pkg. Setting up pkg root in $app_dir/root"
-    mkdir -p $app_dir/root
     mkdir -p $app_dir/root/Applications
     cp -R $mount_path/$app_name $app_dir/root/Applications
-    pkgbuild --root $app_dir/root $app_dir/$name-$app_new_version.pkg
-    log_data "Cleaning up the dmg"
-	hdiutil detach $mount_path
+    pkgbuild --root $app_dir/root $app_dir/$name-$app_new_version.pkg | tee -a $log_file
+	log_data "Unmounting $location from $mount_path"
+	hdiutil detach $mount_path | tee -a $log_file
+    log_data "Cleaning up the download and pkg root."
 	rm -rf $location
     rm -rf $app_dir/root
 else
-    log_data "NO MATCH! Exiting script - Removing $location"
-    hdiutil detach $mount_path
+	# If Team IDs do not match, clean up and exit with error
+    log_data "Error! Team ID does not match $expected_team_id! Verify download url!"
+    log_data "Unmounting $$location from $mount_path"
+    hdiutil detach $mount_parth | tee -a $log_file
+    log_data "Deleting $location"
     rm -rf $location
     exit 1
 fi
 
 log_data "Cached app versions for $name:"
 ls -la $app_dir | grep $name | tee -a $log_file
-
-exit 0
