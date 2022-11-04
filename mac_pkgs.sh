@@ -9,7 +9,8 @@ config_file="./mac_pkgs.cfg"
 
 # Log configuration
 log_file=$( cat $config_file | grep log_file | awk -F= '{print $2}' | tr -d ' ' )
-touch $log_File
+export MAC_PKGS_LOG=$log_file
+touch $log_file
 
 # Logging function
 log_data() {
@@ -25,6 +26,7 @@ log_data "Log File: $log_file"
 log_data "===== ===== ===== ====="
 
 repo_path=$( cat $config_file | grep repo_path | awk -F= '{print $2}' | tr -d ' ' )
+export MAC_PKGS_REPO=$repo_path
 log_data "Repo Path: $repo_path"
 if [ ! -d $repo_path ]
 then
@@ -33,6 +35,7 @@ then
 fi
 
 apps_path=$( cat $config_file | grep apps_path | awk -F= '{print $2}' | tr -d ' ' )
+export MAC_PKGS_APPS=$apps_path
 log_data "Apps Path: $apps_path"
 if [ ! -d $apps_path ]
 then

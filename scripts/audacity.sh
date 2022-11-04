@@ -1,13 +1,22 @@
 #!/bin/zsh
+# Application Info
+name="audacity"
+expected_team_id="AWEYX923UX"
 
 # Reading config file
-config_file="./mac_pkgs.cfg"
+#config_file="./mac_pkgs.cfg"
+config_file=$MAC_PKGS_CONFIG
 # Set disabled to 1 to prevent the packaging from proceeding.
 disabled=0
 
 # Log configuration
-log_file=$( cat $config_file | grep log_file | awk -F= '{print $2}' | tr -d ' ' )
-touch $log_File
+log_file=$MAC_PKGS_LOG
+if [ -z $log_file ]
+then
+	echo "MAC_PKGS_LOG not set in env."
+	exit 0
+fi
+touch $log_file
 
 # Logging function
 log_data() {
@@ -21,7 +30,7 @@ log_data "Config File: $config_file"
 log_data "Log File: $log_file"
 log_data "===== ===== ===== ====="
 
-repo_path=$( cat $config_file | grep repo_path | awk -F= '{print $2}' | tr -d ' ' )
+repo_path=$MAC_PKGS_REPO
 log_data "Repo Path: $repo_path"
 if [ ! -d $repo_path ]
 then
@@ -29,7 +38,7 @@ then
 	exit 1
 fi
 
-apps_path=$( cat $config_file | grep apps_path | awk -F= '{print $2}' | tr -d ' ' )
+apps_path=$MAC_PKGS_APPS
 log_data "Apps Path: $apps_path"
 if [ ! -d $apps_path ]
 then
@@ -37,9 +46,7 @@ then
 	exit 1
 fi
 
-# Application Info
-name="audacity"
-expected_team_id="AWEYX923UX"
+# Log Application Info
 log_data "Application name: $name"
 log_data "Expected Team ID: $expected_team_id"
 
@@ -47,7 +54,6 @@ log_data "Expected Team ID: $expected_team_id"
 download_url=$(curl -L --silent --fail "https://api.github.com/repos/audacity/audacity/releases/latest" | awk -F '"' "/browser_download_url/ && /dmg\"/ { print \$4; exit }")
 app_new_version=$(curl -L --silent --fail "https://api.github.com/repos/audacity/audacity/releases/latest" | grep tag_name | cut -d '"' -f 4 | sed 's/[^0-9\.]//g')
 log_data "Download URL: $download_url"
-log_data "App New Version: $app_new_version"
 
 # Packaging information
 required_pkg_name="audacity-macOS-$app_new_version-Intel.dmg"
@@ -55,6 +61,7 @@ app_dir="$apps_path/$name"
 location="$app_dir/$required_pkg_name"
 mount_path="$repo_path/mount"
 app_name="Audacity.app"
+log_data "App New Version: $app_new_version"
 log_data "Required PKG Name: $required_pkg_name"
 
 # Check for script disabled

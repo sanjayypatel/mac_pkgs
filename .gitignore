@@ -1,4 +1,4 @@
 .DS_Store
 mac_pkgs.cfg
 apps/*
-logs/mac_pkgs.log
+logs/*
